@@ -24,18 +24,18 @@ GraphiQL.NET saves you from needing any additional dependencies by allowing you 
 
 ## Installation
 
-The GraphiQL.NET middleware can be [found on NuGet here](https://www.nuget.org/packages/graphiql/)
+The GraphiQL.NET Auth middleware can be [found on NuGet here](https://www.nuget.org/packages/GraphiQLAuth/)
 
-You can install GraphiQL.NET by copying and pasting the following command into your Package Manager Console within Visual Studio (Tools > NuGet Package Manager > Package Manager Console).
+You can install GraphiQL.NET Auth by copying and pasting the following command into your Package Manager Console within Visual Studio (Tools > NuGet Package Manager > Package Manager Console).
 
 ```
-Install-Package graphiql
+Install-Package GraphiQLAuth
 ```
 
 Alternatively you can install it using the .NET Core CLI using the following command:
 
 ```
-dotnet add package graphiql
+dotnet add package GraphiQLAuth
 ```
 
 ## Getting Started
