@@ -1,8 +1,8 @@
 ![](https://raw.githubusercontent.com/JosephWoodward/graphiql-dotnet/master/assets/logo_128_128.png)
 
-# GraphiQL.NET
+# GraphiQL.NET Auth
 
-GraphiQL middleware for ASP.NET Core - try the [live demo here](http://graphql.org/swapi-graphql/).
+GraphiQL middleware for ASP.NET Core with JWT- bearer token retireval built in. Forked from https://github.com/JosephWoodward/graphiql-dotnet. Either you can paste in a bearer token received from your auth, or you can pass user credentials to your authorization endpoint. This fork does not handle the authorization process in GraphQl or your API.
 
 ## What is GraphiQL?
 
@@ -76,5 +76,18 @@ public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerF
 ```
 
 Now navigating to `/graphql` will display the GraphiQL UI, but your GraphQL API will live under the `/v1/yourapi` route.
+
+## Auth Configuration
+
+You can specify an authorization url to request a bearer token from. Note: This fork only supports user credentials (username and password). Feel free to fork and expand my solution for your needs.
+
+```csharp
+public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
+{
+    app.UseGraphiQl("/graphql", "/v1/yourapi", "https://authorizationurl/v1/token");
+
+    app.UseMvc();
+}
+```
 
 
