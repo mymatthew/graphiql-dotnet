@@ -10,7 +10,7 @@ namespace GraphiQl
     public static class GraphiQlExtensions
     {
         private const string DefaultPath = "/graphql";
-        
+
         public static IApplicationBuilder UseGraphiQl(this IApplicationBuilder app)
             => UseGraphiQl(app, DefaultPath);
 
@@ -20,14 +20,14 @@ namespace GraphiQl
         /// <param name="path"></param>
         /// <param name="apiPath">In some scenarios it makes sense to specify the API path and file server path independently
         /// Examples: hosting in IIS in a virtual application (myapp.com/1.0/...) or hosting API and documentation separately</param>
-        public static IApplicationBuilder UseGraphiQl(this IApplicationBuilder app, string path, string apiPath)
+        public static IApplicationBuilder UseGraphiQl(this IApplicationBuilder app, string path, string apiPath, string authUrl = null)
         {
             if (string.IsNullOrWhiteSpace(path))
                 throw new ArgumentException(nameof(path));
 
             var filePath = path.EndsWith("/") ? path : $"{path}/" + "graphql-path.js";
-            var uri = !string.IsNullOrWhiteSpace(apiPath) ? apiPath : path; 
-            app.Map(filePath, x => WritePathJavaScript(x, uri));
+            var uri = !string.IsNullOrWhiteSpace(apiPath) ? apiPath : path;
+            app.Map(filePath, x => WritePathJavaScript(x, uri, authUrl));
 
             return UseGraphiQlImp(app, x => x.SetPath(path));
         }
@@ -47,7 +47,7 @@ namespace GraphiQl
                 RequestPath = config.Path,
                 FileProvider = BuildFileProvider(),
                 EnableDefaultFiles = true,
-                StaticFileOptions = {ContentTypeProvider = new FileExtensionContentTypeProvider()}
+                StaticFileOptions = { ContentTypeProvider = new FileExtensionContentTypeProvider() }
             };
 
             app.UseFileServer(fileServerOptions);
@@ -67,12 +67,12 @@ namespace GraphiQl
             return fileProvider;
         }
 
-        private static void WritePathJavaScript(IApplicationBuilder app, string path)
+        private static void WritePathJavaScript(IApplicationBuilder app, string path, string authUrl = null)
         {
             app.Run(h =>
             {
                 h.Response.ContentType = "application/javascript";
-                return h.Response.WriteAsync($"var graphqlPath='{path}';");
+                return h.Response.WriteAsync($"var graphqlPath='{path}'; var wtsAuthUrl='{authUrl}'");
             });
         }
     }
