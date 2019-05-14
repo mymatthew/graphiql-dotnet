@@ -72,7 +72,7 @@ namespace GraphiQl
             app.Run(h =>
             {
                 h.Response.ContentType = "application/javascript";
-                return h.Response.WriteAsync($"var graphqlPath='{path}'; var wtsAuthUrl='{authUrl}'");
+                return h.Response.WriteAsync($"var graphqlPath='{path}'; var authUrl='{authUrl}'");
             });
         }
     }
