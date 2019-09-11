@@ -19,15 +19,16 @@ namespace GraphiQl
 
         /// <param name="path"></param>
         /// <param name="apiPath">In some scenarios it makes sense to specify the API path and file server path independently
+        /// <param name="authMutation">The mutation to use for the authorization. Typically this will be 'login'.</param>
         /// Examples: hosting in IIS in a virtual application (myapp.com/1.0/...) or hosting API and documentation separately</param>
-        public static IApplicationBuilder UseGraphiQl(this IApplicationBuilder app, string path, string apiPath, string authUrl = null)
+        public static IApplicationBuilder UseGraphiQl(this IApplicationBuilder app, string path, string apiPath, string authMutation = null)
         {
             if (string.IsNullOrWhiteSpace(path))
                 throw new ArgumentException(nameof(path));
 
             var filePath = path.EndsWith("/") ? path : $"{path}/" + "graphql-path.js";
             var uri = !string.IsNullOrWhiteSpace(apiPath) ? apiPath : path;
-            app.Map(filePath, x => WritePathJavaScript(x, uri, authUrl));
+            app.Map(filePath, x => WritePathJavaScript(x, uri, authMutation));
 
             return UseGraphiQlImp(app, x => x.SetPath(path));
         }
@@ -67,12 +68,12 @@ namespace GraphiQl
             return fileProvider;
         }
 
-        private static void WritePathJavaScript(IApplicationBuilder app, string path, string authUrl = null)
+        private static void WritePathJavaScript(IApplicationBuilder app, string path, string authMutation = null)
         {
             app.Run(h =>
             {
                 h.Response.ContentType = "application/javascript";
-                return h.Response.WriteAsync($"var graphqlPath='{path}'; var authUrl='{authUrl}'");
+                return h.Response.WriteAsync($"var graphqlPath='{path}'; var authMutation='{authMutation}'");
             });
         }
     }

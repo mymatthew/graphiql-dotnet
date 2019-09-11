@@ -2,7 +2,7 @@
 
 # GraphiQL.NET Auth
 
-GraphiQL middleware for ASP.NET Core with JWT- bearer token retireval built in. Forked from https://github.com/JosephWoodward/graphiql-dotnet. Either you can paste in a bearer token received from your auth, or you can pass user credentials to your authorization endpoint. This fork does not handle the authorization process in GraphQl or your API.
+GraphiQL middleware for ASP.NET Core with JWT-bearer token retireval built in. Forked from https://github.com/JosephWoodward/graphiql-dotnet. Either you can paste in a bearer token received from your auth, or you can pass user credentials to your authorization mutation. This fork does not handle the authorization process in GraphQl or your API.
 
 ## What is GraphiQL?
 
@@ -79,15 +79,28 @@ Now navigating to `/graphql` will display the GraphiQL UI, but your GraphQL API 
 
 ## Auth Configuration
 
-You can specify an authorization url to request a bearer token from. Note: This fork only supports user credentials (username and password). Feel free to fork and expand my solution for your needs.
+You can specify an authorization mutation to request a bearer token from. When specified users will be able to request a bearer token through the graphql API. In order for this behavior to work the graphql API must have the specified mutation setup.
+
 
 ```csharp
 public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
 {
-    app.UseGraphiQl("/graphql", "/v1/yourapi", "https://authorizationurl/v1/token");
+    app.UseGraphiQl("/graphql", "/v1/yourapi", "login");
 
     app.UseMvc();
 }
 ```
+
+Now navigating to `/graphql` will display the GraphiQL UI, but your GraphQL API will include an additional login area at the top of the screen. After a successsful login the bearer token will appear in this area.
+
+All future graphql requeusts you make will include the token displayed in the login area. If you do not wish to login through user credentials, a valid bearer token may be copied into the login area.
+
+### Specifications
+
+- This fork only supports user credentials (username and password) when logging in. Feel free to fork and expand my solution for your needs.
+- The bearer token displayed in the login area will be included in the request header. It is up to you to utilize that in your graphql API.
+- The auth mutation must be part of the graphql API that you configured above.
+- The auth mutation must support `accessToken` in it's return type.
+- The auth mutation MAY support `expires` in it's return type. When supported, the access token will be stored as a cookie for the `expires` duration.
 
 

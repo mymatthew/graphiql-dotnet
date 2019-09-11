@@ -98,7 +98,7 @@
         <script src="./graphql-path.js"></script>
     </head>
     <body>
-        <button class="collapsible"><i class="arrow down"></i></button>
+        <button id="jwt-token-collapsible-area" class="collapsible" style="display: none;"><i class="arrow down"></i></button>
         <div class="jwt-token">
             <div class="token">
                 <button id="loginBtn">Refresh Token</button>
@@ -113,64 +113,92 @@
         <div id="graphiql">Loading...</div>
         <script>
             // Collapsable Bearer Section
-            var coll = document.getElementsByClassName("collapsible");
-            for (var count = 0; count < coll.length; count++) {
-                coll[count].addEventListener("click", function () {
-                    this.classList.toggle("active");
-                    var content = this.nextElementSibling;
-                    if (content.style.maxHeight) {
-                        content.style.maxHeight = null;
-                        content.style.padding = null;
-                    } else {
-                        content.style.maxHeight = content.scrollHeight + "px";
-                        content.style.padding = "7px 14px 6px";
-                    }
-                });
+            if (authMutation) {
+                document.getElementById('jwt-token-collapsible-area').style.display = "block";
+                var coll = document.getElementsByClassName("collapsible");
+                for (var count = 0; count < coll.length; count++) {
+                    coll[count].addEventListener("click", function () {
+                        this.classList.toggle("active");
+                        var content = this.nextElementSibling;
+                        if (content.style.maxHeight) {
+                            content.style.maxHeight = null;
+                            content.style.padding = null;
+                        } else {
+                            content.style.maxHeight = content.scrollHeight + "px";
+                            content.style.padding = "7px 14px 6px";
+                        }
+                    });
+                }
             }
 
             // Login to refresh bearer token
+            var loggedIn = false;
             var login = document.getElementById("loginBtn");
             login.addEventListener("click", function () {
+                if (authMutation === null) {
+                    alert('The authorization mutation was not found');
+                    return;
+                }
+
                 var username = document.getElementById('username').value;
                 var password = document.getElementById('password').value;
-
-                callLoginAPI(username, password);
-            });
-
-            function callLoginAPI(username, password) {
-                const config = {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        accept: 'application/json'
-                    },
-                    credentials: 'same-origin',
-                    body: `username=${username}&password=${password}&grant_type=password`
-                };
 
                 if (username.length < 1 || password.length < 1) {
                     alert('Username and password cannot be empty.');
                     return;
                 }
 
-                return fetch(authUrl, config).then(function (response) {
-                    return response.text();
-                }).then(function (responseBody) {
+                var graphQLAuthParams = {
+                    query: 'mutation {\n  ' + authMutation + '(input: {username: "' + username + '", password: "' + password + '"}) {\n    accessToken\n    expires\n  }\n}\n',
+                    variables: null
+                };
+                
+                var queryPromise = reactElement.props.fetcher(graphQLAuthParams);
+                queryPromise.then(function (result) {
                     try {
-                        var token = JSON.parse(responseBody).access_token;
+                        var response = result.data[authMutation];
 
-                        if (token) {
-                            document.getElementById('jwt-token').value = token;
-                            localStorage.setItem('graphiql:jwtToken', token);
+                        var token = response.accessToken;
+                        var expiration = response.expires;
+
+                        if (token === null) {
+                            throw ("No token was returned.");
+                        }
+                        document.getElementById('jwt-token').value = token;
+
+                        if (expiration) {
+                            var date = new Date(expiration)
+                            document.cookie = "token=" + token + "; expires=" + date.toGMTString();
                         }
                         else {
-                            alert("Invalid Credentials.");
+                            document.cookie = "token=" + token;
+                        }
+
+                        if (loggedIn === false) {
+                            updateFetcher(graphQLAuthorizedFetcher);
+                            loggedIn = true;
                         }
                     } catch (error) {
-                        alert(responseBody);
+                        alert("Error while attempting to login.");
                     }
                 });
-            };
+            });            
+
+            function getCookie(cname) {
+                var name = cname + "=";
+                var decodedCookie = decodeURIComponent(document.cookie);
+                var cookies = decodedCookie.split(';');
+                for (var i = 0; i < cookies.length; i++) {
+                    var cookie = cookies[i];
+                    while (cookie.charAt(0) == ' ') {
+                        cookie = cookie.substring(1);
+                    }
+                    if (cookie.indexOf(name) == 0) {
+                        return cookie.substring(name.length, cookie.length);
+                    }
+                }
+                return "";
+            }
 
             /**
              * This GraphiQL example illustrates how to use some of GraphiQL's props
@@ -191,7 +219,8 @@
                         decodeURIComponent(entry.slice(eq + 1));
                 }
             });
-            document.getElementById('jwt-token').value = localStorage.getItem('graphiql:jwtToken');
+
+            document.getElementById('jwt-token').value = getCookie("token");
 
             // if variables was provided, try to format it.
             if (parameters.variables) {
@@ -231,22 +260,26 @@
                 history.replaceState(null, null, newSearch);
             }
 
-            // Defines a GraphQL fetcher using the fetch API. You're not required to
-            // use fetch, and could instead implement graphQLFetcher however you like,
-            // as long as it returns a Promise or Observable.
-            function graphQLFetcher(graphQLParams) {
-                const jwtToken = document.getElementById('jwt-token').value;
+            function graphQLAuthorizedFetcher(graphQLParams) {
                 let headers = {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json'
                 };
-                if (jwtToken) {
-                    localStorage.setItem('graphiql:jwtToken', jwtToken);
-                    headers = {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json',
-                        'Authorization': jwtToken ? `Bearer ${jwtToken}` : null
-                    };
+
+                if (authMutation) {
+                    const jwtToken = document.getElementById('jwt-token').value;
+                    if (jwtToken) {
+                        headers = {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${jwtToken}`
+                        };
+                    }
+                    else {
+                        loggedIn = false;
+                        updateFetcher(graphQLUnauthorizedFetcher);
+                        return graphQLUnauthorizedFetcher(graphQLParams);
+                    }
                 }
 
                 // This example expects a GraphQL server at the path /graphql.
@@ -260,6 +293,20 @@
                     return response.text();
                 }).then(function (responseBody) {
                     try {
+                        let errors = JSON.parse(responseBody).errors;
+                        if (errors) {
+                            let i = 0;
+                            while (i < errors.length) {
+                                if (errors[i++].extensions.code === "UNAUTHORIZED_ACCESS") {
+                                    i = errors.length;
+
+                                    loggedIn = false;
+                                    document.getElementById('jwt-token').value = "";
+                                    updateFetcher(graphQLUnauthorizedFetcher);
+                                }
+                            }
+                        }
+
                         return JSON.parse(responseBody);
                     } catch (error) {
                         return responseBody;
@@ -267,22 +314,72 @@
                 });
             }
 
-            // Render <GraphiQL /> into the body.
-            // See the README in the top level of this module to learn more about
-            // how you can customize GraphiQL by providing different values or
-            // additional child elements.
-            ReactDOM.render(
-                React.createElement(GraphiQL, {
-                    fetcher: graphQLFetcher,
+            // Defines a GraphQL fetcher using the fetch API. You're not required to
+            // use fetch, and could instead implement graphQLFetcher however you like,
+            // as long as it returns a Promise or Observable.
+            function graphQLUnauthorizedFetcher(graphQLParams) {
+                if (authMutation) {
+                    const jwtToken = document.getElementById('jwt-token').value;
+                    if (jwtToken) {
+                        loggedIn = true;
+                        updateFetcher(graphQLAuthorizedFetcher);
+                        return graphQLAuthorizedFetcher(graphQLParams);
+                    }
+
+                    if (!graphQLParams.query.includes(authMutation)) {
+                        var loginRequiredPromise = new Promise(function (reject) {
+                            reject("Login is required before using GraphiQl features.");
+                        });
+
+                        return loginRequiredPromise;
+                    }
+                }
+
+                let headers = {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                };
+                
+                // This example expects a GraphQL server at the path /graphql.
+                // Change this to point wherever you host your GraphQL server.
+                return fetch(graphqlPath, {
+                    method: 'post',
+                    headers,
+                    body: JSON.stringify(graphQLParams),
+                }).then(function (response) {
+                    return response.text();
+                }).then(function (responseBody) {
+                    try {
+                        return JSON.parse(responseBody);
+                    } catch (error) {
+                        return responseBody;
+                    }
+                });
+            }
+
+            var reactElement;
+            function updateFetcher(fetcher) {
+                if (reactElement && reactElement.props && reactElement.props.fetcher === fetcher) {
+                    return;
+                }
+
+                // Render <GraphiQL /> into the body.
+                // See the README in the top level of this module to learn more about
+                // how you can customize GraphiQL by providing different values or
+                // additional child elements.
+                reactElement = React.createElement(GraphiQL, {
+                    fetcher: fetcher,
                     query: parameters.query,
                     variables: parameters.variables,
                     operationName: parameters.operationName,
                     onEditQuery: onEditQuery,
                     onEditVariables: onEditVariables,
                     onEditOperationName: onEditOperationName
-                }),
-                document.getElementById('graphiql')
-            );
+                });
+                ReactDOM.render(reactElement, document.getElementById('graphiql'));
+            }
+
+            updateFetcher(authMutation && getCookie("token") === "" ? graphQLUnauthorizedFetcher : graphQLAuthorizedFetcher);
         </script>
     </body>
 </html>
