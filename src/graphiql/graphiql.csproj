@@ -15,10 +15,9 @@
     <Company>Paradigm</Company>
     <Copyright></Copyright>
     <Product>GraphiQLAuth</Product>
-    <Version>1.1.0</Version>
+    <Version>1.1.1</Version>
     <RootNamespace>graphiql</RootNamespace>
-    <PackageReleaseNotes>Convert payload to GraphQl specs.
-Don't allow requests to API until after a token is supplied.</PackageReleaseNotes>
+    <PackageReleaseNotes>Fix an issue with query results being shown as a string.</PackageReleaseNotes>
     <RepositoryUrl>https://github.com/mymatthew/graphiql-dotnet</RepositoryUrl>
   </PropertyGroup>
   <ItemGroup>
