@@ -297,13 +297,14 @@
                         if (errors) {
                             let i = 0;
                             while (i < errors.length) {
-                                if (errors[i].extensions && errors[i].extensions.code && errors[i++].extensions.code === "UNAUTHORIZED_ACCESS") {
+                                if (errors[i].extensions && errors[i].extensions.code && errors[i].extensions.code === "UNAUTHORIZED_ACCESS") {
                                     i = errors.length;
 
                                     loggedIn = false;
                                     document.getElementById('jwt-token').value = "";
                                     updateFetcher(graphQLUnauthorizedFetcher);
                                 }
+                                i++;
                             }
                         }
 
